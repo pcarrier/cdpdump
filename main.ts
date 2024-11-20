@@ -237,6 +237,7 @@ if (import.meta.main) {
   performance.measure("dom", "loaded", "domFinished");
   performance.measure("a11y", "domFinished", "a11yFinished");
   performance.measure("screen shot", "a11yFinished", "screenShotFinished");
+  performance.measure("so far", "started", "screenShotFinished");
   performance.measure("page shot", "screenShotFinished", "pageShotFinished");
   performance.measure("pdf", "pageShotFinished", "pdfFinished");
   performance.measure("total", "started", "pdfFinished");
