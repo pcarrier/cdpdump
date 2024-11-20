@@ -177,7 +177,19 @@ if (import.meta.main) {
 
   performance.mark("loaded");
 
-  const screenshot = decodeBase64(
+  const screenShot = decodeBase64(
+    (
+      (await client.call(
+        "Page.captureScreenshot",
+        { format: "png", optimizeForSpeed: true },
+        sessionId
+      )) as Protocol.Page.CaptureScreenshotResponse
+    ).data
+  );
+
+  performance.mark("screenShotFinished");
+
+  const pageShot = decodeBase64(
     (
       (await client.call(
         "Page.captureScreenshot",
@@ -187,7 +199,7 @@ if (import.meta.main) {
     ).data
   );
 
-  performance.mark("screenshotFinished");
+  performance.mark("pageShotFinished");
 
   const pdf = decodeBase64(
     (
@@ -215,8 +227,9 @@ if (import.meta.main) {
 
   performance.measure("readiness", "started", "ready");
   if (goTo !== undefined) performance.measure("load", "ready", "loaded");
-  performance.measure("screenshot", "ready", "screenshotFinished");
-  performance.measure("pdf", "screenshotFinished", "pdfFinished");
+  performance.measure("screen shot", "ready", "screenShotFinished");
+  performance.measure("page shot", "screenShotFinished", "pageShotFinished");
+  performance.measure("pdf", "pageShotFinished", "pdfFinished");
   performance.measure("dom", "pdfFinished", "domFinished");
   performance.measure("a11y", "domFinished", "a11yFinished");
   performance.measure("total", "started", "a11yFinished");
@@ -227,7 +240,8 @@ if (import.meta.main) {
     }))
   );
 
-  Deno.writeFileSync("screenshot.png", screenshot);
+  Deno.writeFileSync("pageshot.png", pageShot);
+  Deno.writeFileSync("screenshot.png", screenShot);
   Deno.writeFileSync("page.pdf", pdf);
   Deno.writeTextFileSync("dom.json", JSON.stringify(dom));
   Deno.writeTextFileSync("a11y.json", JSON.stringify(a11y));
