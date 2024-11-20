@@ -1,5 +1,8 @@
 import { decodeBase64 } from "@std/encoding";
 import { Protocol } from "devtools-protocol";
+import { Encoder } from "https://deno.land/x/cbor@v1.6.0/index.js";
+
+const encoder = new Encoder();
 
 class CDPClient {
   nextId = 1;
@@ -244,6 +247,8 @@ if (import.meta.main) {
   Deno.writeFileSync("screenshot.png", screenShot);
   Deno.writeFileSync("page.pdf", pdf);
   Deno.writeTextFileSync("dom.json", JSON.stringify(dom));
+  Deno.writeFileSync("dom.cbor", encoder.encode(dom));
   Deno.writeTextFileSync("a11y.json", JSON.stringify(a11y));
+  Deno.writeFileSync("a11y.cbor", encoder.encode(a11y));
   Deno.exit(0);
 }
