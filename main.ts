@@ -214,7 +214,7 @@ if (import.meta.main) {
   performance.mark("a11yFinished");
 
   performance.measure("readiness", "started", "ready");
-  performance.measure("load", "ready", "loaded");
+  if (goTo !== undefined) performance.measure("load", "ready", "loaded");
   performance.measure("screenshot", "ready", "screenshotFinished");
   performance.measure("pdf", "screenshotFinished", "pdfFinished");
   performance.measure("dom", "pdfFinished", "domFinished");
