@@ -97,11 +97,20 @@ class CDPClient {
     }
     collectFrameIDs(frameTree);
     const a11yTrees = (await Promise.all(
-      frameIds.map((frameId) =>
-        this.call("Accessibility.getFullAXTree", { frameId }, sessionId)
-      )
-    )) as Protocol.Accessibility.GetFullAXTreeResponse[];
-    const res: Record<string, Protocol.Accessibility.AXNode[]> = {};
+      frameIds.map((frameId) => {
+        try {
+          return this.call(
+            "Accessibility.getFullAXTree",
+            { frameId },
+            sessionId
+          );
+        } catch (e) {
+          console.error(e);
+          return null;
+        }
+      })
+    )) as (Protocol.Accessibility.GetFullAXTreeResponse | null)[];
+    const res: Record<string, Protocol.Accessibility.AXNode[] | undefined> = {};
     frameIds.forEach((frameId, idx) => {
       res[frameId] = a11yTrees[idx]?.nodes;
     });
