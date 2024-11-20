@@ -21,14 +21,14 @@ class CDPClient {
         handler(data);
         this.handlers.delete(data.id);
       } else {
-            const key = `${data.method}/${data.sessionId}`;
-            const expectation = this.expectations.get(key);
-            if (expectation) {
-              expectation(data);
-              this.expectations.delete(key);
-            }
+        const key = `${data.method}/${data.sessionId}`;
+        const expectation = this.expectations.get(key);
+        if (expectation) {
+          expectation(data);
+          this.expectations.delete(key);
         }
-      };
+      }
+    };
     await new Promise((resolve) => (this.socket.onopen = resolve));
   }
 
@@ -219,6 +219,7 @@ if (import.meta.main) {
   performance.measure("pdf", "screenshotFinished", "pdfFinished");
   performance.measure("dom", "pdfFinished", "domFinished");
   performance.measure("a11y", "domFinished", "a11yFinished");
+  performance.measure("total", "started", "a11yFinished");
   console.table(
     performance.getEntriesByType("measure").map(({ name, duration }) => ({
       name,
