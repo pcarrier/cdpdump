@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-env --allow-net --allow-write --watch main.ts"
+  },
+  "imports": {
+    "@std/encoding": "jsr:@std/encoding@^1.0.5",
+    "devtools-protocol": "npm:devtools-protocol@^0.0.1383960"
+  }
+}
