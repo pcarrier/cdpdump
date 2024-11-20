@@ -1,6 +1,10 @@
 import { decodeBase64 } from "@std/encoding";
 import { Protocol } from "devtools-protocol";
 import { Encoder } from "https://deno.land/x/cbor@v1.6.0/index.js";
+import {
+  compress,
+  init,
+} from "https://deno.land/x/zstd_wasm@0.0.21/deno/zstd.ts";
 
 const encoder = new Encoder();
 
@@ -243,12 +247,13 @@ if (import.meta.main) {
     }))
   );
 
+  await init();
   Deno.writeFileSync("pageshot.png", pageShot);
   Deno.writeFileSync("screenshot.png", screenShot);
   Deno.writeFileSync("page.pdf", pdf);
   Deno.writeTextFileSync("dom.json", JSON.stringify(dom));
-  Deno.writeFileSync("dom.cbor", encoder.encode(dom));
+  Deno.writeFileSync("dom.cbor.zst", compress(encoder.encode(dom)));
   Deno.writeTextFileSync("a11y.json", JSON.stringify(a11y));
-  Deno.writeFileSync("a11y.cbor", encoder.encode(a11y));
+  Deno.writeFileSync("a11y.cbor.zst", compress(encoder.encode(a11y)));
   Deno.exit(0);
 }
