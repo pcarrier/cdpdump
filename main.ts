@@ -177,6 +177,18 @@ if (import.meta.main) {
 
   performance.mark("loaded");
 
+  const dom = await client.call(
+    "DOMSnapshot.captureSnapshot",
+    { computedStyles: ["display"], includeDOMRects: true },
+    sessionId
+  );
+
+  performance.mark("domFinished");
+
+  const a11y = await client.getA11yTree(sessionId);
+
+  performance.mark("a11yFinished");
+
   const screenShot = decodeBase64(
     (
       (await client.call(
@@ -213,26 +225,14 @@ if (import.meta.main) {
 
   performance.mark("pdfFinished");
 
-  const dom = await client.call(
-    "DOMSnapshot.captureSnapshot",
-    { computedStyles: ["display"], includeDOMRects: true },
-    sessionId
-  );
-
-  performance.mark("domFinished");
-
-  const a11y = await client.getA11yTree(sessionId);
-
-  performance.mark("a11yFinished");
-
   performance.measure("readiness", "started", "ready");
   if (goTo !== undefined) performance.measure("load", "ready", "loaded");
-  performance.measure("screen shot", "ready", "screenShotFinished");
+  performance.measure("dom", "loaded", "domFinished");
+  performance.measure("a11y", "domFinished", "a11yFinished");
+  performance.measure("screen shot", "a11yFinished", "screenShotFinished");
   performance.measure("page shot", "screenShotFinished", "pageShotFinished");
   performance.measure("pdf", "pageShotFinished", "pdfFinished");
-  performance.measure("dom", "pdfFinished", "domFinished");
-  performance.measure("a11y", "domFinished", "a11yFinished");
-  performance.measure("total", "started", "a11yFinished");
+  performance.measure("total", "started", "pdfFinished");
   console.table(
     performance.getEntriesByType("measure").map(({ name, duration }) => ({
       name,
