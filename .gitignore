@@ -1,7 +1,4 @@
-/a11y.cbor.zst
-/a11y.json
-/dom.cbor.zst
-/dom.json
+/*.zst
 /page.pdf
 /pageshot.png
 /screenshot.png

@@ -1,12 +1,9 @@
 import { decodeBase64 } from "@std/encoding";
 import { Protocol } from "devtools-protocol";
-import { Encoder } from "https://deno.land/x/cbor@v1.6.0/index.js";
 import {
   compress,
   init,
 } from "https://deno.land/x/zstd_wasm@0.0.21/deno/zstd.ts";
-
-const encoder = new Encoder();
 
 class CDPClient {
   nextId = 1;
@@ -36,7 +33,10 @@ class CDPClient {
         }
       }
     };
-    await new Promise((resolve) => (this.socket.onopen = resolve));
+    await new Promise((resolve, reject) => {
+      this.socket.onopen = resolve;
+      this.socket.onerror = reject;
+    });
   }
 
   expect(eventName: string, sessionId: string) {
@@ -127,8 +127,18 @@ class CDPClient {
 }
 
 async function grabUrlFromStealthium() {
-  const browserURLs = (await (await fetch("http://localhost:19222")).json())
-    .browsers;
+  const url = Deno.env.get("STEALTHIUM_URL") || "http://localhost:19222";
+  const settings = Deno.env.get("LAUNCH_SETTINGS");
+  if (settings) {
+    const launchUrl = URL.parse(url);
+    if (launchUrl) {
+      launchUrl.protocol = launchUrl.protocol.replace("http", "ws");
+      launchUrl.pathname += "launch";
+      launchUrl.searchParams.set("env", settings);
+      return launchUrl.toString();
+    }
+  }
+  const browserURLs = (await (await fetch(url)).json()).browsers;
   if (browserURLs.length === 0) {
     throw new Error("No browsers found");
   }
@@ -150,6 +160,7 @@ if (import.meta.main) {
   }
   const client = new CDPClient(url);
   await client.start();
+  console.log("Connected to", url);
 
   const pages = await client.listPages();
   let page;
@@ -186,7 +197,10 @@ if (import.meta.main) {
 
   const dom = await client.call(
     "DOMSnapshot.captureSnapshot",
-    { computedStyles: ["display"], includeDOMRects: true },
+    {
+      computedStyles: ["display", "visibility", "opacity"],
+      includeDOMRects: true,
+    },
     sessionId
   );
 
@@ -229,7 +243,6 @@ if (import.meta.main) {
       )) as Protocol.Page.PrintToPDFResponse
     ).data
   );
-
   performance.mark("pdfFinished");
 
   performance.measure("readiness", "started", "ready");
@@ -239,8 +252,10 @@ if (import.meta.main) {
   performance.measure("screen shot", "a11yFinished", "screenShotFinished");
   performance.measure("so far", "started", "screenShotFinished");
   performance.measure("page shot", "screenShotFinished", "pageShotFinished");
-  performance.measure("pdf", "pageShotFinished", "pdfFinished");
+  performance.measure("PDF", "pageShotFinished", "pdfFinished");
+
   performance.measure("total", "started", "pdfFinished");
+
   console.table(
     performance.getEntriesByType("measure").map(({ name, duration }) => ({
       name,
@@ -248,13 +263,20 @@ if (import.meta.main) {
     }))
   );
 
+  const domJSON = JSON.stringify(dom);
+  const a11yJSON = JSON.stringify(a11y);
+
   await init();
   Deno.writeFileSync("pageshot.png", pageShot);
   Deno.writeFileSync("screenshot.png", screenShot);
   Deno.writeFileSync("page.pdf", pdf);
-  Deno.writeTextFileSync("dom.json", JSON.stringify(dom));
-  Deno.writeFileSync("dom.cbor.zst", compress(encoder.encode(dom)));
-  Deno.writeTextFileSync("a11y.json", JSON.stringify(a11y));
-  Deno.writeFileSync("a11y.cbor.zst", compress(encoder.encode(a11y)));
+  Deno.writeFileSync(
+    "dom.json.zst",
+    compress(new TextEncoder().encode(domJSON))
+  );
+  Deno.writeFileSync(
+    "a11y.json.zst",
+    compress(new TextEncoder().encode(a11yJSON))
+  );
   Deno.exit(0);
 }
