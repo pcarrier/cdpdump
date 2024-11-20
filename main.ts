@@ -5,6 +5,8 @@ class CDPClient {
   nextId = 1;
   // deno-lint-ignore no-explicit-any
   handlers: Map<number, (arg: any) => void> = new Map();
+  // deno-lint-ignore no-explicit-any
+  expectations: Map<string, (data: any) => void> = new Map();
   socket: WebSocket;
 
   constructor(url: string) {
@@ -29,12 +31,24 @@ class CDPClient {
               );
             }
             break;
-          default:
-            console.log("Unhandled message", data);
+          default: {
+            const key = `${data.method}/${data.sessionId}`;
+            const expectation = this.expectations.get(key);
+            if (expectation) {
+              expectation(data);
+              this.expectations.delete(key);
+            }
+          }
         }
       }
     };
     await new Promise((resolve) => (this.socket.onopen = resolve));
+  }
+
+  expect(eventName: string, sessionId: string) {
+    return new Promise((resolve) => {
+      this.expectations.set(`${eventName}/${sessionId}`, resolve);
+    });
   }
 
   _send<Q, R>(
@@ -136,8 +150,7 @@ async function grabUrlFromStealthium() {
 }
 
 if (import.meta.main) {
-  const url =
-    Deno.env.get("URL") || Deno.args[0] || (await grabUrlFromStealthium());
+  const url = Deno.env.get("URL") || (await grabUrlFromStealthium());
   if (!url) {
     Deno.exit(1);
   }
@@ -164,8 +177,18 @@ if (import.meta.main) {
   const sessionId = await client.attachToTarget(page.targetId);
   await client.call("Accessibility.enable", {}, sessionId);
   await client.call("DOMSnapshot.enable", {}, sessionId);
+  await client.call("Page.enable", {}, sessionId);
 
   performance.mark("ready");
+
+  const goTo = Deno.args.shift();
+  if (goTo !== undefined) {
+    const expectation = client.expect("Page.loadEventFired", sessionId);
+    await client.call("Page.navigate", { url: goTo }, sessionId);
+    await expectation;
+  }
+
+  performance.mark("loaded");
 
   const screenshot = decodeBase64(
     (
@@ -203,23 +226,12 @@ if (import.meta.main) {
 
   performance.mark("a11yFinished");
 
-  const startupMeasure = performance.measure("startup", "started", "ready");
-  const screenshotMeasure = performance.measure(
-    "screenshot",
-    "ready",
-    "screenshotFinished"
-  );
-  const pdfMeasure = performance.measure(
-    "pdf",
-    "screenshotFinished",
-    "pdfFinished"
-  );
-  const domMeasure = performance.measure("dom", "pdfFinished", "domFinished");
-  const a11yMeasure = performance.measure(
-    "a11y",
-    "domFinished",
-    "a11yFinished"
-  );
+  performance.measure("readiness", "started", "ready");
+  performance.measure("load", "ready", "loaded");
+  performance.measure("screenshot", "ready", "screenshotFinished");
+  performance.measure("pdf", "screenshotFinished", "pdfFinished");
+  performance.measure("dom", "pdfFinished", "domFinished");
+  performance.measure("a11y", "domFinished", "a11yFinished");
   console.table(
     performance.getEntriesByType("measure").map(({ name, duration }) => ({
       name,
