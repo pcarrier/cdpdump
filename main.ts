@@ -194,7 +194,7 @@ if (import.meta.main) {
     (
       (await client.call(
         "Page.captureScreenshot",
-        { format: "png", captureBeyondViewport: true },
+        { format: "png", captureBeyondViewport: true, optimizeForSpeed: true },
         sessionId
       )) as Protocol.Page.CaptureScreenshotResponse
     ).data
