@@ -21,27 +21,14 @@ class CDPClient {
         handler(data);
         this.handlers.delete(data.id);
       } else {
-        switch (data.method) {
-          case "Target.attachedToTarget":
-            {
-              const params =
-                data.params as Protocol.Target.AttachedToTargetEvent;
-              console.log(
-                `Attached to ${params.targetInfo.url} with session ${params.sessionId}`
-              );
-            }
-            break;
-          default: {
             const key = `${data.method}/${data.sessionId}`;
             const expectation = this.expectations.get(key);
             if (expectation) {
               expectation(data);
               this.expectations.delete(key);
             }
-          }
         }
-      }
-    };
+      };
     await new Promise((resolve) => (this.socket.onopen = resolve));
   }
 
